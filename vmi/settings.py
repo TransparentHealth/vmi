@@ -62,8 +62,7 @@ INSTALLED_APPS = [
     'apps.mfa.backends.sms',
     'apps.chop',
     'apps.testclient',
-    'apps.api',
-
+    'apps.api'
 ]
 
 MIDDLEWARE = [
@@ -94,6 +93,10 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.google_openidconnect.GoogleOpenIdConnect',
 )
 
+# acceptable amr values for an AAL2
+AMR_TO_AAL2 = ["mfa", "otp", "kba", "sms", "swk", "hwk"]
+
+
 # Python Social Auth for upstream identity providers
 SOCIAL_AUTH_GOOGLE_URL = env("SOCIAL_AUTH_GOOGLE_URL", 'https://accounts.google.com')
 SOCIAL_AUTH_GOOGLE_OIDC_ENDPOINT = env("SOCIAL_AUTH_GOOGLE_OIDC_ENDPOINT", 'https://accounts.google.com')
@@ -111,9 +114,13 @@ SOCIAL_AUTH_OKTA_OPENIDCONNECT_KEY = env('SOCIAL_AUTH_OKTA_OPENIDCONNECT_KEY', '
 SOCIAL_AUTH_OKTA_OPENIDCONNECT_SECRET = env('SOCIAL_AUTH_OKTA_OPENIDCONNECT_SECRET', '')
 SOCIAL_AUTH_OKTA_OPENIDCONNECT_AUTO_IAL2 = bool_env(env('SOCIAL_AUTH_OKTA_OPENIDCONNECT_AUTO_IAL2', True))
 
+SOCIAL_AUTH_OKTA_OPENIDCONNECT_KEY = env('SOCIAL_AUTH_OPENEPIC_KEY', '')
+SOCIAL_AUTH_OKTA_OPENIDCONNECT_SECRET = env('SOCIAL_AUTH_OPENEPIC_SECRET', '')
+SOCIAL_AUTH_OKTA_OPENIDCONNECT_AUTO_IAL2 = bool_env(env('SOCIAL_AUTH_OPENEPIC_AUTO_IAL2', True))
+
+
 SOCIAL_AUTH_PING_OPENIDCONNECT_KEY = env('SOCIAL_AUTH_PING_OPENIDCONNECT_KEY', '')
 SOCIAL_AUTH_PING_OPENIDCONNECT_SECRET = env('SOCIAL_AUTH_PING_OPENIDCONNECT_SECRET', '')
-
 
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
@@ -125,7 +132,9 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
-    'apps.chop.backends.okta.get_upstream_sub',  # get the up stream IdP sub
+    # get the upstream IdP's sub, etc.
+    'apps.okta.backends.okta_openidconnect.get_upstream_sub',
+    'apps.okta.backends.okta_openidconnect.get_upstream_aal',
 )
 
 
@@ -284,6 +293,9 @@ OIDC_PROVIDER = {
         # claims.
         'apps.accounts.claims.UserProfileClaimProvider',
 
+        # Basic amr
+        'apps.accounts.claims.AMRClaimProvider',
+
         # Include address
         'apps.accounts.claims.AddressClaimProvider',
 
@@ -302,10 +314,10 @@ OIDC_PROVIDER = {
         # 'apps.accounts.claims.EmailVerifiedClaimProvider',
         # 'apps.accounts.claims.PhoneNumberClaimProvider',
         # 'apps.accounts.claims.IdentityAssuranceLevelClaimProvider',
-        # 'apps.accounts.claims.AuthenticatorAssuranceLevelClaimProvider',
         # 'apps.accounts.claims.VectorsOfTrustClaimProvider',
         'apps.fido.claims.AuthenticatorAssuranceProvider',
         'apps.mfa.backends.sms.claims.AuthenticatorAssuranceProvider',
+        'apps.okta.claims.AuthenticatorAssuranceProvider',
     ],
 }
 
@@ -326,7 +338,7 @@ TWILIO_FROM_NUMBER = env('TWILIO_FROM_NUMBER', "+15555555555")
 SUBJECT_LUHN_PREFIX = env('SUBJECT_LUHN_PREFIX', '')
 APPLICATION_TITLE = env('APPLICATION_TITLE', "Verify My Identity")
 KILLER_APP_TITLE = env('KILLER_APP_TITLE', 'Your Application Here')
-KILLER_APP_URI = env('KILLER_APP_URI', 'http://localhost:8002')
+KILLER_APP_URI = env('KILLER_APP_URI', '')
 
 TOP_LEFT_TITLE = env('TOP_LEFT_TITLE', 'verify my identity')
 PARTNER_REF = env('PARTNER_REF', '')  # a subtitle
@@ -477,7 +489,7 @@ ORGANIZATION_ID_TYPE_CHOICES = env('ORGANIZATION_ID_TYPE_CHOICES', (
     ('NPI', 'National Provider Identifier'),
     ('OEID', 'Other Entity Identifier'),
     ('PECOS', 'PECOS Medicare ID'),
-    ('MEDICAID', 'State Provider  /Medicaid ID'),
+    ('MEDICAID', 'State Provider/Medicaid ID'),
     ('NETWORK_ID', 'Insurance/Network ID'),
     ('DIRECT_DOMAIN', 'Direct Domain'),
     ('DIRECT_ADDRESS', 'Direct Address'),
